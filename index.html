@@ -61,7 +61,7 @@
         .black-piece { color: #000; border-color: #000; }
         
         /* HIỆU ỨNG TƯƠNG TÁC ĐƯỢC LÀM DỊU LẠI */
-        .selected { box-shadow: 0px 0px 5px 1px #00ff008a; border-color: #00ff008a; }
+        .selected { box-shadow: 0 0 5px 3px #00ff00; border-color: #00ff00; }
         .in-check-piece { box-shadow: 0 0 10px 4px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
         
         /* Chấm tròn nước đi cũ nhỏ hơn và nhạt hơn (70%) */
@@ -560,7 +560,7 @@
             } else if (isCheck) { turnInd.innerText = (currentNode.isRedTurn ? "🔴 ĐỎ" : "⚫ ĐEN") + " ĐANG BỊ CHIẾU!"; turnInd.className = "check-alert"; } 
             else { turnInd.innerText = currentNode.isRedTurn ? "🔴 Lượt đi: ĐỎ" : "⚫ Lượt đi: ĐEN"; turnInd.className = currentNode.isRedTurn ? "red-turn" : "black-turn"; }
 
-            document.getElementById('move-info').innerText = currentNode.moveName;
+            document.getElementById('move-info').innerText = 'Trạng thái: ' + currentNode.moveName;
 
             let noteContent = document.getElementById('note-content');
             if (currentNode.note && currentNode.note.trim() !== '') { noteContent.innerHTML = currentNode.note.replace(/\n/g, '<br>'); noteContent.style.color = '#111'; noteContent.style.fontStyle = 'normal';
@@ -618,7 +618,16 @@
                 case 'h': if (!((absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2))) return false; if (absDr === 2 && board[r1 + dr/2][c1] !== '.') return false; if (absDc === 2 && board[r1][c1 + dc/2] !== '.') return false; break;
                 case 'r': if (dr !== 0 && dc !== 0) return false; if (countPiecesBetween(board, r1, c1, r2, c2) !== 0) return false; break;
                 case 'c': if (dr !== 0 && dc !== 0) return false; let piecesBetween = countPiecesBetween(board, r1, c1, r2, c2); if (target === '.') { if(piecesBetween !== 0) return false; } else { if(piecesBetween !== 1) return false; } break;
-                case 'p': if (isRed) { if (dr >= 0) return false; if (r1 >= 5 && absDc !== 0) return false; } else { if (dr <= 0) return false; if (r1 <= 4 && absDc !== 0) return false; } if (absDr + absDc !== 1) return false; break;
+                case 'p': 
+                    if (isRed) { 
+                        if (dr > 0) return false; // Chỉ chặn đi lùi (bỏ dấu bằng)
+                        if (r1 >= 5 && dr === 0) return false; // Chưa qua sông (r >= 5) thì không được đi ngang (dr === 0)
+                    } else { 
+                        if (dr < 0) return false; // Chỉ chặn đi lùi (bỏ dấu bằng)
+                        if (r1 <= 4 && dr === 0) return false; // Chưa qua sông (r <= 4) thì không được đi ngang (dr === 0)
+                    } 
+                    if (absDr + absDc !== 1) return false; // Vẫn đảm bảo mỗi lần chỉ đi 1 ô
+                    break;
             } return true;
         }
 
@@ -698,5 +707,3 @@
     </script>
 </body>
 </html>
-
-
