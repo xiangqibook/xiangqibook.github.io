@@ -61,7 +61,7 @@
         .black-piece { color: #000; border-color: #000; }
         
         /* HIỆU ỨNG TƯƠNG TÁC ĐƯỢC LÀM DỊU LẠI */
-        .selected { box-shadow: 0 0 5px 3px #00ff00; border-color: #00ff00; }
+        .selected { box-shadow: 0px 0px 5px 1px #00ff008a; border-color: #00ff008a; }
         .in-check-piece { box-shadow: 0 0 10px 4px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
         
         /* Chấm tròn nước đi cũ nhỏ hơn và nhạt hơn (70%) */
@@ -560,7 +560,7 @@
             } else if (isCheck) { turnInd.innerText = (currentNode.isRedTurn ? "🔴 ĐỎ" : "⚫ ĐEN") + " ĐANG BỊ CHIẾU!"; turnInd.className = "check-alert"; } 
             else { turnInd.innerText = currentNode.isRedTurn ? "🔴 Lượt đi: ĐỎ" : "⚫ Lượt đi: ĐEN"; turnInd.className = currentNode.isRedTurn ? "red-turn" : "black-turn"; }
 
-            document.getElementById('move-info').innerText = 'Trạng thái: ' + currentNode.moveName;
+            document.getElementById('move-info').innerText = currentNode.moveName;
 
             let noteContent = document.getElementById('note-content');
             if (currentNode.note && currentNode.note.trim() !== '') { noteContent.innerHTML = currentNode.note.replace(/\n/g, '<br>'); noteContent.style.color = '#111'; noteContent.style.fontStyle = 'normal';
@@ -698,3 +698,4 @@
     </script>
 </body>
 </html>
+
