@@ -3,122 +3,186 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Book Cờ Tướng V17 (Fast Branch)</title>
+    <title>Quản Lý Book Cờ Tướng V18</title>
     <style>
-        :root { --board-bg: #e6c280; --line-color: #5a3a22; --piece-bg: #fdf5e6; --primary: #8b0000; }
-        
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; touch-action: manipulation; }
-        body { background-color: #f4f4f4; display: flex; flex-direction: column; min-height: 100vh; color: #333; }
-        
-        header { 
-            background: var(--primary); color: white; padding: 15px; display: flex; align-items: center; justify-content: center; 
-            font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    :root { --board-bg: #e6c280; --line-color: #5a3a22; --piece-bg: #fdf5e6; --primary: #8b0000; }
+    
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; touch-action: manipulation; }
+    body { background-color: #f4f4f4; display: flex; flex-direction: column; min-height: 100vh; color: #333; }
+    
+    header { 
+        background: var(--primary); color: white; padding: 15px; display: flex; align-items: center; justify-content: center; 
+        font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    #btn-back { position: absolute; left: 15px; background: transparent; color: white; border: none; font-size: 20px; cursor: pointer; display: none; padding: 0;}
+    
+    /* ================= MÀN HÌNH DASHBOARD ================= */
+    #dashboard-screen { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px; margin: 0 auto; }
+    
+    .dashboard-actions { display: flex; gap: 10px; width: 100%; flex-wrap: wrap;}
+    .btn-main { flex: 1; min-width: 150px; border: none; padding: 15px 10px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white; transition: 0.2s;}
+    .btn-create-book { background: #006633; }
+    .btn-import-book { background: #0055aa; }
+    .btn-sync-pc { background: #5a3a22; display: none; }
+    .btn-main:active { transform: scale(0.98); filter: brightness(0.9); }
+    
+    #unsaved-warning { display: none; background: #ffebee; color: #cc0000; padding: 12px; text-align: center; font-weight: bold; border-radius: 5px; border: 1px solid #ffcdd2; font-size: 14px;}
+
+    .book-list { display: flex; flex-direction: column; gap: 12px; }
+    .book-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+    .book-info { flex: 1; min-width: 200px; cursor: pointer; }
+    .book-title { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 5px;}
+    .book-meta { font-size: 13px; color: #777; }
+    .book-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    
+    .btn-sm { padding: 8px 12px; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s;}
+    .btn-export { background: #28a745; }
+    .btn-edit-name { background: #ff9800; }
+    .btn-delete { background: #cc0000; }
+    .btn-sm:active { transform: scale(0.95); }
+
+    /* ================= MÀN HÌNH BÀN CỜ ================= */
+    #editor-screen { display: none; flex-direction: column; flex: 1; padding-bottom: 30px;}
+    
+    #turn-indicator { background: #fff; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px solid #ddd; transition: 0.3s;}
+    .red-turn { color: #cc0000; } .black-turn { color: #000000; }
+    .check-alert { background-color: #ffeb3b !important; color: #d32f2f !important; }
+    .mate-alert { background-color: #d32f2f !important; color: #fff !important; }
+
+    .editor-container { display: flex; flex-direction: column; width: 100%; max-width: 1200px; margin: 0 auto; padding: 10px 15px; gap: 15px; }
+    .board-column { width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+    .note-column { width: 100%; display: flex; flex-direction: column; }
+
+    #board-wrapper { width: 100%; position: relative; padding: 6%; }
+    #board { position: relative; width: 100%; aspect-ratio: 8 / 9; background-color: var(--board-bg); border: 2px solid var(--line-color); box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
+    #board-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+    #arrow-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; transition: 0.3s;}
+    #pieces-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4; transition: 0.3s;}
+    
+    .point { position: absolute; width: 11%; aspect-ratio: 1; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; border-radius: 50%; cursor: pointer; transition: top 0.3s, left 0.3s; }
+    .piece { width: 90%; height: 90%; border-radius: 50%; background: var(--piece-bg); box-shadow: 1px 2px 4px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; border: 2px solid #333; pointer-events: none; z-index: 2; position: relative; }
+    .red-piece { color: #cc0000; border-color: #cc0000; }
+    .black-piece { color: #000; border-color: #000; }
+    
+    .selected { box-shadow: 0 0 10px 4px #00ff00; border-color: #00ff00; }
+    .in-check-piece { box-shadow: 0 0 15px 5px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
+    .valid-move-hint { width: 30%; height: 30%; background: rgba(0, 255, 0, 0.6); border-radius: 50%; z-index: 1;}
+    .capture-hint { position: absolute; width: 95%; height: 95%; border: 3px solid rgba(220, 53, 69, 0.8); background-color: transparent; border-radius: 50%; z-index: 5; pointer-events: none; }
+    .var-marker { position: absolute; top: -5%; right: -5%; width: 40%; aspect-ratio: 1; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid white; pointer-events: none; }
+
+    /* ================= BỘ ĐIỀU KHIỂN TINH GỌN (V21) ================= */
+        #controls { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 6px; /* Thu hẹp khoảng cách giữa các nút */
+            width: 100%; 
+            padding: 0 5px;
+            margin-top: 5px;
         }
-        #btn-back { position: absolute; left: 15px; background: transparent; color: white; border: none; font-size: 20px; cursor: pointer; display: none; padding: 0;}
-        
-        /* ================= MÀN HÌNH DASHBOARD ================= */
-        #dashboard-screen { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px; margin: 0 auto; }
-        
-        .dashboard-actions { display: flex; gap: 10px; width: 100%; flex-wrap: wrap;}
-        .btn-main { flex: 1; min-width: 150px; border: none; padding: 15px 10px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white; transition: 0.2s;}
-        .btn-create-book { background: #006633; }
-        .btn-import-book { background: #0055aa; }
-        .btn-sync-pc { background: #5a3a22; display: none; }
-        .btn-main:active { transform: scale(0.98); filter: brightness(0.9); }
-        
-        #unsaved-warning { display: none; background: #ffebee; color: #cc0000; padding: 12px; text-align: center; font-weight: bold; border-radius: 5px; border: 1px solid #ffcdd2; font-size: 14px;}
 
-        .book-list { display: flex; flex-direction: column; gap: 12px; }
-        .book-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
-        .book-info { flex: 1; min-width: 200px; cursor: pointer; }
-        .book-title { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 5px;}
-        .book-meta { font-size: 13px; color: #777; }
-        .book-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-board { 
+            padding: 6px 2px; /* Ép mỏng chiều cao nút, nhìn sẽ thanh thoát hơn */
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 11px; /* Chữ nhỏ gọn lại */
+            font-weight: bold; 
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            gap: 2px; /* Ép icon và chữ sát lại nhau */
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+            transition: all 0.1s ease;
+        }
         
-        .btn-sm { padding: 8px 12px; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s;}
-        .btn-export { background: #28a745; }
-        .btn-edit-name { background: #ff9800; }
-        .btn-delete { background: #cc0000; }
-        .btn-sm:active { transform: scale(0.95); }
+        .btn-board span {
+            font-size: 16px; /* Thu nhỏ kích thước icon */
+            margin-bottom: 2px;
+        }
 
-        /* ================= MÀN HÌNH BÀN CỜ ================= */
-        #editor-screen { display: none; flex-direction: column; flex: 1; padding-bottom: 30px;}
+        .btn-board:active { 
+            transform: translateY(2px); 
+            box-shadow: 0 0px 1px rgba(0,0,0,0.1);
+        }
         
-        #turn-indicator { background: #fff; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px solid #ddd; transition: 0.3s;}
-        .red-turn { color: #cc0000; } .black-turn { color: #000000; }
-        .check-alert { background-color: #ffeb3b !important; color: #d32f2f !important; }
-        .mate-alert { background-color: #d32f2f !important; color: #fff !important; }
+        /* Màu sắc */
+        .btn-nav-primary { background: #006633; color: white; }
+        .btn-nav-fast { background: #8b0000; color: white; }
+        .btn-nav-light { background: #fcfcfc; border: 1px solid #ddd; color: #444; }
+        .btn-view { background: #f0f4ff; color: #0055aa; border: 1px solid #cce0ff;}
 
-        .editor-container { display: flex; flex-direction: column; width: 100%; max-width: 1200px; margin: 0 auto; padding: 15px; gap: 20px; }
-        .board-column { width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
-        .note-column { width: 100%; display: flex; flex-direction: column; }
-
-        #board-wrapper { width: 100%; position: relative; padding: 6%; }
-        #board { position: relative; width: 100%; aspect-ratio: 8 / 9; background-color: var(--board-bg); border: 2px solid var(--line-color); box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
-        #board-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
-        #arrow-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; transition: 0.3s;}
-        #pieces-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4; transition: 0.3s;}
-        
-        .point { position: absolute; width: 11%; aspect-ratio: 1; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; border-radius: 50%; cursor: pointer; transition: top 0.3s, left 0.3s; }
-        .piece { width: 90%; height: 90%; border-radius: 50%; background: var(--piece-bg); box-shadow: 1px 2px 4px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; border: 2px solid #333; pointer-events: none; z-index: 2; position: relative; }
-        .red-piece { color: #cc0000; border-color: #cc0000; }
-        .black-piece { color: #000; border-color: #000; }
-        
-        .selected { box-shadow: 0 0 10px 4px #00ff00; border-color: #00ff00; }
-        .in-check-piece { box-shadow: 0 0 15px 5px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
-        .valid-move-hint { width: 30%; height: 30%; background: rgba(0, 255, 0, 0.6); border-radius: 50%; z-index: 1;}
-        .capture-hint { position: absolute; width: 95%; height: 95%; border: 3px solid rgba(220, 53, 69, 0.8); background-color: transparent; border-radius: 50%; z-index: 5; pointer-events: none; }
-        .var-marker { position: absolute; top: -5%; right: -5%; width: 40%; aspect-ratio: 1; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid white; pointer-events: none; }
-
-        /* Bố cục Grid 5 nút cực gọn cho thanh điều khiển */
-        #controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; padding: 0 10px;}
-        .btn-board { padding: 12px 2px; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s;}
-        .btn-board:active { transform: scale(0.95); }
-        .btn-nav { background: #006633; } 
-        .btn-fast-back { background: #8b0000; } /* Nút tua nhanh khác màu một chút */
-        .btn-action { background: #0055aa; }
-
-        #note-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; }
-        #move-info { font-weight: bold; color: #8b0000; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;}
-        
-        #variations { display: flex; gap: 10px; flex-wrap: wrap; }
-        .var-btn-group { display: flex; align-items: stretch; border-radius: 6px; border: 1px solid #0044cc; overflow: hidden; }
-        .var-btn { background: #e8f0fe; color: #0044cc; font-weight: bold; font-size: 14px; padding: 8px 12px; border: none; cursor: pointer; transition: 0.2s;}
-        .var-btn:active { background: #d2e3fc; }
-        .var-delete-btn { background: #ffe6e6; color: #cc0000; border: none; border-left: 1px solid #0044cc; padding: 0 12px; font-size: 14px; cursor: pointer; transition: 0.2s;}
-        .var-delete-btn:active { background: #ffcccc; }
-        
-        .capture-group { border-color: #cc0000 !important; }
-        .capture-btn { background: #fce8e8 !important; color: #cc0000 !important; }
-        .capture-btn:active { background: #f8d7da !important; }
-        .capture-del { background: #f8d7da !important; color: #721c24 !important; border-left-color: #cc0000 !important; }
-        
-        #note-view, #note-edit { display: flex; flex-direction: column; gap: 12px;}
-        #note-content { padding: 15px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 15px; line-height: 1.6; min-height: 80px;}
-        #note-input { padding: 15px; border: 2px solid #006633; border-radius: 6px; font-size: 15px; resize: vertical; min-height: 120px; font-family: sans-serif; line-height: 1.6;}
-        
-        .btn-note { padding: 12px; font-size: 15px; width: 100%; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;}
-        .btn-edit-mode { background: #444; }
-        
-        .edit-controls { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
-        .btn-save { background: #006633; }
-        .btn-cancel { background: #888; }
-
+        /* ================= RESPONSIVE CHO PC & TABLET ================= */
         @media (min-width: 800px) {
+            /* Giữ layout 2 cột cho PC */
             .editor-container { flex-direction: row; align-items: flex-start; padding: 25px; gap: 30px; }
             .board-column { flex: 0 0 450px; position: sticky; top: 80px; }
             .note-column { flex: 1; min-width: 300px; }
             .piece { font-size: 1.4rem; }
+            
+            /* Dàn 6 nút thành 1 hàng ngang trên máy tính */
+            #controls { 
+                display: flex; 
+                flex-direction: row; 
+                justify-content: space-between;
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            .btn-board { 
+                flex: 1; 
+                flex-direction: row; /* Chữ nằm cạnh Icon */
+                padding: 8px 4px; 
+                font-size: 12px;
+                white-space: nowrap;
+            }
+            .btn-board span { font-size: 14px; margin-bottom: 0; margin-right: 3px;}
         }
-        
-        /* Chỉnh lại Layout nút cho màn hình điện thoại mượt mà hơn */
-        @media (max-width: 450px) {
-            #controls { grid-template-columns: repeat(3, 1fr); }
-            /* Các nút điều hướng lên hàng trên, các nút chức năng xuống hàng dưới */
+
+        @media (max-width: 400px) {
             .piece { font-size: 1rem; }
             .dashboard-actions { flex-direction: column; }
         }
-    </style>
+    /* ================= KHU VỰC GHI CHÚ ================= */
+    #note-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; }
+    #move-info { font-weight: bold; color: #8b0000; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;}
+    
+    #variations { display: flex; gap: 10px; flex-wrap: wrap; }
+    .var-btn-group { display: flex; align-items: stretch; border-radius: 6px; border: 1px solid #0044cc; overflow: hidden; }
+    .var-btn { background: #e8f0fe; color: #0044cc; font-weight: bold; font-size: 14px; padding: 8px 12px; border: none; cursor: pointer; transition: 0.2s;}
+    .var-btn:active { background: #d2e3fc; }
+    .var-delete-btn { background: #ffe6e6; color: #cc0000; border: none; border-left: 1px solid #0044cc; padding: 0 12px; font-size: 14px; cursor: pointer; transition: 0.2s;}
+    .var-delete-btn:active { background: #ffcccc; }
+    
+    .capture-group { border-color: #cc0000 !important; }
+    .capture-btn { background: #fce8e8 !important; color: #cc0000 !important; }
+    .capture-btn:active { background: #f8d7da !important; }
+    .capture-del { background: #f8d7da !important; color: #721c24 !important; border-left-color: #cc0000 !important; }
+    
+    #note-view, #note-edit { display: flex; flex-direction: column; gap: 12px;}
+    #note-content { padding: 15px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 15px; line-height: 1.6; min-height: 80px;}
+    #note-input { padding: 15px; border: 2px solid #006633; border-radius: 6px; font-size: 15px; resize: vertical; min-height: 120px; font-family: sans-serif; line-height: 1.6;}
+    
+    .btn-note { padding: 12px; font-size: 15px; width: 100%; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;}
+    .btn-edit-mode { background: #444; }
+    
+    .edit-controls { display: flex; gap: 10px; }
+    .btn-save { background: #006633; flex: 2;}
+    .btn-cancel { background: #888; flex: 1;}
+
+    @media (min-width: 800px) {
+        .editor-container { flex-direction: row; align-items: flex-start; padding: 25px; gap: 30px; }
+        .board-column { flex: 0 0 450px; position: sticky; top: 80px; }
+        .note-column { flex: 1; min-width: 300px; }
+        .piece { font-size: 1.4rem; }
+    }
+    
+    @media (max-width: 400px) {
+        .piece { font-size: 1.05rem; }
+        .dashboard-actions { flex-direction: column; }
+        /* Chữ trên nút điều khiển nhỏ lại chút trên điện thoại quá bé */
+        .btn-board { font-size: 13px; padding: 10px 2px; } 
+    }
+</style>
 </head>
 <body>
 
@@ -161,12 +225,14 @@
                 </div>
 
                 <div id="controls">
-                    <button class="btn-board btn-nav" onclick="goBack()" title="Lùi lại 1 nước">🔙 Lùi</button>
-                    <button class="btn-board btn-fast-back" onclick="goBackToBranch()" title="Lùi nhanh về điểm ngã rẽ gần nhất">⏪ Ngã rẽ</button>
-                    <button class="btn-board btn-nav" onclick="goNext()" title="Tiếp tục nhánh chính">Tiếp 🔜</button>
-                    <button class="btn-board btn-action" onclick="toggleFlip()" title="Lật ngược bàn cờ">↕️ Đổi bên</button>
-                    <button class="btn-board btn-action" onclick="resetToRoot()" title="Về lại thế cờ khởi đầu">🔄 Về đầu</button>
-                </div>
+    <button class="btn-board btn-nav-primary" onclick="goBack()" title="Lùi lại 1 nước"><span>🔙</span> Lùi</button>
+    <button class="btn-board btn-nav-primary" onclick="goNext()" title="Tiếp tục nhánh chính"><span>🔜</span> Tiếp</button>
+    <button class="btn-board btn-nav-fast" onclick="goBackToBranch()" title="Lùi nhanh về ngã rẽ"><span>⏪</span> Ngã rẽ</button>
+    
+    <button class="btn-board btn-view" onclick="toggleMirror()" title="Lật gương ngang bàn cờ"><span>↔️</span> Đảo ngang</button>
+    <button class="btn-board btn-view" onclick="toggleFlip()" title="Lật ngược bàn cờ dọc"><span>↕️</span> Đổi bên</button>
+    <button class="btn-board btn-nav-light" onclick="resetToRoot()" title="Về lại thế cờ khởi đầu"><span>🔄</span> Về đầu</button>
+</div>
             </div>
 
             <div class="note-column">
@@ -202,18 +268,22 @@
         const pieceMap = { 'R': '車', 'H': '馬', 'E': '相', 'A': '仕', 'K': '帥', 'C': '炮', 'P': '兵', 'r': '車', 'h': '馬', 'e': '象', 'a': '士', 'k': '將', 'c': '砲', 'p': '卒' };
 
         let appData = []; let currentBookId = null; 
-        let bookTree; let currentNode; let historyPath = []; let selectedSquare = null; let isGameOver = false; let isFlipped = false;
+        let bookTree; let currentNode; let historyPath = []; let selectedSquare = null; let isGameOver = false; 
+        
+        let isFlipped = false; // Lật dọc (đổi bên đỏ/đen)
+        let isMirrored = false; // Lật ngang (đảo cánh trái/phải)
+        
         let isUnsavedToPhysicalFile = false; let localFileHandle = null; 
 
         function initApp() {
-            let saved = localStorage.getItem('xiangqi_app_v17');
+            let saved = localStorage.getItem('xiangqi_app_v18');
             if (saved) { appData = JSON.parse(saved); }
             if ('showSaveFilePicker' in window) { document.getElementById('btn-sync').style.display = 'block'; }
             showDashboard();
         }
 
         function saveAppData() { 
-            localStorage.setItem('xiangqi_app_v17', JSON.stringify(appData)); 
+            localStorage.setItem('xiangqi_app_v18', JSON.stringify(appData)); 
             isUnsavedToPhysicalFile = true; updateWarningUI();
             if (localFileHandle) { syncToLocalFile(); }
         }
@@ -319,7 +389,12 @@
 
         function openBook(id) {
             let book = appData.find(b => b.id === id); currentBookId = book.id; bookTree = book.tree; currentNode = bookTree; historyPath = [bookTree];
-            isFlipped = false; selectedSquare = null;
+            
+            // Đặt lại các trạng thái lật khi mở Book mới
+            isFlipped = false; 
+            isMirrored = false;
+            selectedSquare = null;
+            
             document.getElementById('dashboard-screen').style.display = 'none'; document.getElementById('editor-screen').style.display = 'flex';
             document.getElementById('btn-back').style.display = 'block'; document.getElementById('header-title').innerText = book.name;
             drawBoardLines(); renderBoard();
@@ -328,6 +403,9 @@
         function autoSaveBook() { if (currentBookId) { let book = appData.find(b => b.id === currentBookId); book.updatedAt = Date.now(); saveAppData(); } }
 
         function toggleFlip() { isFlipped = !isFlipped; renderBoard(); }
+        
+        // HÀM ĐẢO NGANG
+        function toggleMirror() { isMirrored = !isMirrored; renderBoard(); }
 
         function drawBoardLines() {
             const svg = document.getElementById('board-svg'); let html = '';
@@ -348,8 +426,18 @@
             currentNode.children.forEach(child => {
                 if (child.moveDetails) {
                     let {fromR, fromC, toR, toC} = child.moveDetails;
-                    let drawFromR = isFlipped ? 9 - fromR : fromR; let drawFromC = isFlipped ? 8 - fromC : fromC;
-                    let drawToR = isFlipped ? 9 - toR : toR; let drawToC = isFlipped ? 8 - toC : toC;
+                    
+                    // Tính tọa độ vẽ mũi tên, áp dụng cả Lật ngang và Đổi bên
+                    let drawFromR = isFlipped ? 9 - fromR : fromR; 
+                    let drawFromC = fromC;
+                    if (isMirrored) drawFromC = 8 - drawFromC;
+                    if (isFlipped) drawFromC = 8 - drawFromC;
+
+                    let drawToR = isFlipped ? 9 - toR : toR; 
+                    let drawToC = toC;
+                    if (isMirrored) drawToC = 8 - drawToC;
+                    if (isFlipped) drawToC = 8 - drawToC;
+
                     let x1 = (drawFromC * 100 / 8) + '%'; let y1 = (drawFromR * 100 / 9) + '%';
                     let x2 = (drawToC * 100 / 8) + '%'; let y2 = (drawToR * 100 / 9) + '%';
                     
@@ -370,8 +458,16 @@
             for (let r = 0; r < 10; r++) {
                 for (let c = 0; c < 9; c++) {
                     let point = document.createElement('div'); point.className = 'point'; 
-                    let displayR = isFlipped ? 9 - r : r; let displayC = isFlipped ? 8 - c : c;
+                    
+                    // Xử lý tọa độ hiển thị quân cờ
+                    let displayR = isFlipped ? 9 - r : r; 
+                    let displayC = c;
+                    if (isMirrored) displayC = 8 - displayC;
+                    if (isFlipped) displayC = 8 - displayC;
+                    
                     point.style.left = (displayC * 100 / 8) + '%'; point.style.top = (displayR * 100 / 9) + '%';
+                    
+                    // Dù hiển thị ở đâu, khi nhấp vào vẫn lấy đúng tọa độ r, c logic của thế cờ gốc
                     point.onclick = () => handleCellClick(r, c);
 
                     let pieceChar = boardState[r][c];
@@ -475,19 +571,14 @@
         function cancelEditNote() { document.getElementById('note-view').style.display = 'flex'; document.getElementById('note-edit').style.display = 'none'; }
         function saveNote() { currentNode.note = document.getElementById('note-input').value; autoSaveBook(); updateUI(isUnderCheck(currentNode.board, currentNode.isRedTurn)); }
 
-        // --- HÀM TUA NHANH VỀ NGÃ RẼ ---
         function goBackToBranch() {
-            if (historyPath.length <= 1) return; // Đang ở đầu thì bỏ qua
-            
-            historyPath.pop(); // Lùi ít nhất 1 bước trước
-            
+            if (historyPath.length <= 1) return;
+            historyPath.pop(); 
             while (historyPath.length > 1) {
                 let topNode = historyPath[historyPath.length - 1];
-                // Nếu node hiện tại có nhiều hơn 1 nhánh (tức là ngã rẽ), thì dừng tua
                 if (topNode.children.length >= 2) break;
                 historyPath.pop();
             }
-            
             currentNode = historyPath[historyPath.length - 1];
             selectedSquare = null;
             renderBoard();
