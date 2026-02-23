@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title data-id="th-modified">Quản Lý Book Cờ Tướng V16</title>
+    <title>Quản Lý Book Cờ Tướng V17 (Fast Branch)</title>
     <style>
         :root { --board-bg: #e6c280; --line-color: #5a3a22; --piece-bg: #fdf5e6; --primary: #8b0000; }
         
@@ -70,16 +70,17 @@
         .capture-hint { position: absolute; width: 95%; height: 95%; border: 3px solid rgba(220, 53, 69, 0.8); background-color: transparent; border-radius: 50%; z-index: 5; pointer-events: none; }
         .var-marker { position: absolute; top: -5%; right: -5%; width: 40%; aspect-ratio: 1; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid white; pointer-events: none; }
 
-        #controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; padding: 0 10px;}
-        .btn-board { padding: 12px 5px; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s;}
+        /* Bố cục Grid 5 nút cực gọn cho thanh điều khiển */
+        #controls { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; padding: 0 10px;}
+        .btn-board { padding: 12px 2px; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: bold; transition: 0.2s;}
         .btn-board:active { transform: scale(0.95); }
         .btn-nav { background: #006633; } 
+        .btn-fast-back { background: #8b0000; } /* Nút tua nhanh khác màu một chút */
         .btn-action { background: #0055aa; }
 
         #note-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; }
         #move-info { font-weight: bold; color: #8b0000; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;}
         
-        /* FIX UI NHÁNH: Tạo group liền khối có nút xóa */
         #variations { display: flex; gap: 10px; flex-wrap: wrap; }
         .var-btn-group { display: flex; align-items: stretch; border-radius: 6px; border: 1px solid #0044cc; overflow: hidden; }
         .var-btn { background: #e8f0fe; color: #0044cc; font-weight: bold; font-size: 14px; padding: 8px 12px; border: none; cursor: pointer; transition: 0.2s;}
@@ -87,7 +88,6 @@
         .var-delete-btn { background: #ffe6e6; color: #cc0000; border: none; border-left: 1px solid #0044cc; padding: 0 12px; font-size: 14px; cursor: pointer; transition: 0.2s;}
         .var-delete-btn:active { background: #ffcccc; }
         
-        /* UI cho nhánh ăn quân */
         .capture-group { border-color: #cc0000 !important; }
         .capture-btn { background: #fce8e8 !important; color: #cc0000 !important; }
         .capture-btn:active { background: #f8d7da !important; }
@@ -110,13 +110,16 @@
             .note-column { flex: 1; min-width: 300px; }
             .piece { font-size: 1.4rem; }
         }
-        @media (max-width: 400px) {
-            #controls { grid-template-columns: repeat(2, 1fr); }
+        
+        /* Chỉnh lại Layout nút cho màn hình điện thoại mượt mà hơn */
+        @media (max-width: 450px) {
+            #controls { grid-template-columns: repeat(3, 1fr); }
+            /* Các nút điều hướng lên hàng trên, các nút chức năng xuống hàng dưới */
             .piece { font-size: 1rem; }
             .dashboard-actions { flex-direction: column; }
         }
     </style>
-<meta property="og:title" content="Quản Lý Book Cờ Tướng V16" data-id="th-modified" ><meta name="description" content="cotuong" data-id="th-modified" ><meta property="og:description" content="cotuong" data-id="th-modified" ><meta property="og:image" content="https://tiiny.host/assets/logo-purple-bg.png" data-id="th-modified" ><meta property="og:url" content="https://cotuong.tiiny.site/" data-id="th-modified" ><meta property="og:type" content="website" data-id="th-modified" ><script defer data-domain="cotuong.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script><script type="text/javascript" src="https://tiiny.host/ad-script.js"></script></head>
+</head>
 <body>
 
     <header>
@@ -148,8 +151,8 @@
                         <svg id="board-svg"></svg>
                         <svg id="arrow-layer">
                             <defs>
-                                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0044cc" ></polygon></marker>
-                                <marker id="arrowhead-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc0000" ></polygon></marker>
+                                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0044cc" /></marker>
+                                <marker id="arrowhead-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc0000" /></marker>
                             </defs>
                             <g id="arrows-group"></g>
                         </svg>
@@ -158,10 +161,11 @@
                 </div>
 
                 <div id="controls">
-                    <button class="btn-board btn-nav" onclick="goBack()">🔙 Lùi</button>
-                    <button class="btn-board btn-nav" onclick="goNext()">Tiếp 🔜</button>
-                    <button class="btn-board btn-action" onclick="toggleFlip()">↕️ Đổi bên</button>
-                    <button class="btn-board btn-action" onclick="resetToRoot()">🔄 Về đầu</button>
+                    <button class="btn-board btn-nav" onclick="goBack()" title="Lùi lại 1 nước">🔙 Lùi</button>
+                    <button class="btn-board btn-fast-back" onclick="goBackToBranch()" title="Lùi nhanh về điểm ngã rẽ gần nhất">⏪ Ngã rẽ</button>
+                    <button class="btn-board btn-nav" onclick="goNext()" title="Tiếp tục nhánh chính">Tiếp 🔜</button>
+                    <button class="btn-board btn-action" onclick="toggleFlip()" title="Lật ngược bàn cờ">↕️ Đổi bên</button>
+                    <button class="btn-board btn-action" onclick="resetToRoot()" title="Về lại thế cờ khởi đầu">🔄 Về đầu</button>
                 </div>
             </div>
 
@@ -199,18 +203,17 @@
 
         let appData = []; let currentBookId = null; 
         let bookTree; let currentNode; let historyPath = []; let selectedSquare = null; let isGameOver = false; let isFlipped = false;
-
         let isUnsavedToPhysicalFile = false; let localFileHandle = null; 
 
         function initApp() {
-            let saved = localStorage.getItem('xiangqi_app_v16');
+            let saved = localStorage.getItem('xiangqi_app_v17');
             if (saved) { appData = JSON.parse(saved); }
             if ('showSaveFilePicker' in window) { document.getElementById('btn-sync').style.display = 'block'; }
             showDashboard();
         }
 
         function saveAppData() { 
-            localStorage.setItem('xiangqi_app_v16', JSON.stringify(appData)); 
+            localStorage.setItem('xiangqi_app_v17', JSON.stringify(appData)); 
             isUnsavedToPhysicalFile = true; updateWarningUI();
             if (localFileHandle) { syncToLocalFile(); }
         }
@@ -427,7 +430,6 @@
                 varContainer.style.display = 'flex'; 
                 let label = document.createElement('span'); label.innerText = 'Các biến nhánh: '; label.style.alignSelf = 'center'; label.style.color = '#0044cc'; label.style.fontWeight = 'bold'; varContainer.appendChild(label);
                 
-                // RENDER CÁC NHÁNH CÙNG NÚT XÓA
                 currentNode.children.forEach((childNode, index) => {
                     let group = document.createElement('div');
                     group.className = 'var-btn-group';
@@ -450,10 +452,9 @@
                     btn.innerText = currentNode.children.length >= 2 ? `[${index + 1}] ${childNode.moveName}` : childNode.moveName;
                     btn.onclick = () => { selectedSquare = null; goToNode(childNode); };
 
-                    // SỰ KIỆN XÓA NHÁNH
                     delBtn.onclick = (e) => {
                         e.stopPropagation();
-                        if(confirm(`⚠️ Bạn có chắc muốn XÓA VĨNH VIỄN nhánh [${childNode.moveName}] và toàn bộ các nước đi sau nó không?`)) {
+                        if(confirm(`⚠️ CẢNH BÁO: Bạn có chắc muốn XÓA VĨNH VIỄN nhánh [${childNode.moveName}] và toàn bộ các nước đi kế tiếp của nó không?`)) {
                             currentNode.children.splice(index, 1);
                             autoSaveBook();
                             selectedSquare = null;
@@ -473,6 +474,24 @@
         function enableEditNote() { document.getElementById('note-view').style.display = 'none'; document.getElementById('note-edit').style.display = 'flex'; document.getElementById('note-input').value = currentNode.note || ''; document.getElementById('note-input').focus(); }
         function cancelEditNote() { document.getElementById('note-view').style.display = 'flex'; document.getElementById('note-edit').style.display = 'none'; }
         function saveNote() { currentNode.note = document.getElementById('note-input').value; autoSaveBook(); updateUI(isUnderCheck(currentNode.board, currentNode.isRedTurn)); }
+
+        // --- HÀM TUA NHANH VỀ NGÃ RẼ ---
+        function goBackToBranch() {
+            if (historyPath.length <= 1) return; // Đang ở đầu thì bỏ qua
+            
+            historyPath.pop(); // Lùi ít nhất 1 bước trước
+            
+            while (historyPath.length > 1) {
+                let topNode = historyPath[historyPath.length - 1];
+                // Nếu node hiện tại có nhiều hơn 1 nhánh (tức là ngã rẽ), thì dừng tua
+                if (topNode.children.length >= 2) break;
+                historyPath.pop();
+            }
+            
+            currentNode = historyPath[historyPath.length - 1];
+            selectedSquare = null;
+            renderBoard();
+        }
 
         function goNext() { if (currentNode.children.length === 1) { selectedSquare = null; goToNode(currentNode.children[0]); } else if (currentNode.children.length > 1) { const varDiv = document.getElementById('variations'); varDiv.style.backgroundColor = '#ffffcc'; setTimeout(() => varDiv.style.backgroundColor = 'transparent', 300); } }
         function goToNode(node) { historyPath.push(node); currentNode = node; renderBoard(); }
