@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title data-id="th-modified">Quản Lý Book Cờ Tướng V16</title>
+    <style>
+        :root { --board-bg: #e6c280; --line-color: #5a3a22; --piece-bg: #fdf5e6; --primary: #8b0000; }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; touch-action: manipulation; }
+        body { background-color: #f4f4f4; display: flex; flex-direction: column; min-height: 100vh; color: #333; }
+        
+        header { 
+            background: var(--primary); color: white; padding: 15px; display: flex; align-items: center; justify-content: center; 
+            font-size: 18px; font-weight: bold; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        #btn-back { position: absolute; left: 15px; background: transparent; color: white; border: none; font-size: 20px; cursor: pointer; display: none; padding: 0;}
+        
+        /* ================= MÀN HÌNH DASHBOARD ================= */
+        #dashboard-screen { flex: 1; padding: 20px; display: flex; flex-direction: column; gap: 15px; width: 100%; max-width: 800px; margin: 0 auto; }
+        
+        .dashboard-actions { display: flex; gap: 10px; width: 100%; flex-wrap: wrap;}
+        .btn-main { flex: 1; min-width: 150px; border: none; padding: 15px 10px; font-size: 14px; font-weight: bold; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1); color: white; transition: 0.2s;}
+        .btn-create-book { background: #006633; }
+        .btn-import-book { background: #0055aa; }
+        .btn-sync-pc { background: #5a3a22; display: none; }
+        .btn-main:active { transform: scale(0.98); filter: brightness(0.9); }
+        
+        #unsaved-warning { display: none; background: #ffebee; color: #cc0000; padding: 12px; text-align: center; font-weight: bold; border-radius: 5px; border: 1px solid #ffcdd2; font-size: 14px;}
+
+        .book-list { display: flex; flex-direction: column; gap: 12px; }
+        .book-item { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.08); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;}
+        .book-info { flex: 1; min-width: 200px; cursor: pointer; }
+        .book-title { font-size: 16px; font-weight: bold; color: #111; margin-bottom: 5px;}
+        .book-meta { font-size: 13px; color: #777; }
+        .book-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        
+        .btn-sm { padding: 8px 12px; border: none; border-radius: 5px; font-size: 13px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s;}
+        .btn-export { background: #28a745; }
+        .btn-edit-name { background: #ff9800; }
+        .btn-delete { background: #cc0000; }
+        .btn-sm:active { transform: scale(0.95); }
+
+        /* ================= MÀN HÌNH BÀN CỜ ================= */
+        #editor-screen { display: none; flex-direction: column; flex: 1; padding-bottom: 30px;}
+        
+        #turn-indicator { background: #fff; padding: 10px; text-align: center; font-weight: bold; font-size: 16px; border-bottom: 2px solid #ddd; transition: 0.3s;}
+        .red-turn { color: #cc0000; } .black-turn { color: #000000; }
+        .check-alert { background-color: #ffeb3b !important; color: #d32f2f !important; }
+        .mate-alert { background-color: #d32f2f !important; color: #fff !important; }
+
+        .editor-container { display: flex; flex-direction: column; width: 100%; max-width: 1200px; margin: 0 auto; padding: 15px; gap: 20px; }
+        .board-column { width: 100%; max-width: 500px; margin: 0 auto; display: flex; flex-direction: column; gap: 15px; }
+        .note-column { width: 100%; display: flex; flex-direction: column; }
+
+        #board-wrapper { width: 100%; position: relative; padding: 6%; }
+        #board { position: relative; width: 100%; aspect-ratio: 8 / 9; background-color: var(--board-bg); border: 2px solid var(--line-color); box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
+        #board-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; }
+        #arrow-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 3; transition: 0.3s;}
+        #pieces-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 4; transition: 0.3s;}
+        
+        .point { position: absolute; width: 11%; aspect-ratio: 1; transform: translate(-50%, -50%); display: flex; justify-content: center; align-items: center; border-radius: 50%; cursor: pointer; transition: top 0.3s, left 0.3s; }
+        .piece { width: 90%; height: 90%; border-radius: 50%; background: var(--piece-bg); box-shadow: 1px 2px 4px rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: center; font-size: 1.2rem; font-weight: bold; border: 2px solid #333; pointer-events: none; z-index: 2; position: relative; }
+        .red-piece { color: #cc0000; border-color: #cc0000; }
+        .black-piece { color: #000; border-color: #000; }
+        
+        .selected { box-shadow: 0 0 10px 4px #00ff00; border-color: #00ff00; }
+        .in-check-piece { box-shadow: 0 0 15px 5px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
+        .valid-move-hint { width: 30%; height: 30%; background: rgba(0, 255, 0, 0.6); border-radius: 50%; z-index: 1;}
+        .capture-hint { position: absolute; width: 95%; height: 95%; border: 3px solid rgba(220, 53, 69, 0.8); background-color: transparent; border-radius: 50%; z-index: 5; pointer-events: none; }
+        .var-marker { position: absolute; top: -5%; right: -5%; width: 40%; aspect-ratio: 1; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid white; pointer-events: none; }
+
+        #controls { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; padding: 0 10px;}
+        .btn-board { padding: 12px 5px; border: none; color: white; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: bold; transition: 0.2s;}
+        .btn-board:active { transform: scale(0.95); }
+        .btn-nav { background: #006633; } 
+        .btn-action { background: #0055aa; }
+
+        #note-section { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; flex-direction: column; gap: 15px; }
+        #move-info { font-weight: bold; color: #8b0000; font-size: 16px; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px;}
+        
+        /* FIX UI NHÁNH: Tạo group liền khối có nút xóa */
+        #variations { display: flex; gap: 10px; flex-wrap: wrap; }
+        .var-btn-group { display: flex; align-items: stretch; border-radius: 6px; border: 1px solid #0044cc; overflow: hidden; }
+        .var-btn { background: #e8f0fe; color: #0044cc; font-weight: bold; font-size: 14px; padding: 8px 12px; border: none; cursor: pointer; transition: 0.2s;}
+        .var-btn:active { background: #d2e3fc; }
+        .var-delete-btn { background: #ffe6e6; color: #cc0000; border: none; border-left: 1px solid #0044cc; padding: 0 12px; font-size: 14px; cursor: pointer; transition: 0.2s;}
+        .var-delete-btn:active { background: #ffcccc; }
+        
+        /* UI cho nhánh ăn quân */
+        .capture-group { border-color: #cc0000 !important; }
+        .capture-btn { background: #fce8e8 !important; color: #cc0000 !important; }
+        .capture-btn:active { background: #f8d7da !important; }
+        .capture-del { background: #f8d7da !important; color: #721c24 !important; border-left-color: #cc0000 !important; }
+        
+        #note-view, #note-edit { display: flex; flex-direction: column; gap: 12px;}
+        #note-content { padding: 15px; background: #fdfdfd; border: 1px solid #e0e0e0; border-radius: 6px; font-size: 15px; line-height: 1.6; min-height: 80px;}
+        #note-input { padding: 15px; border: 2px solid #006633; border-radius: 6px; font-size: 15px; resize: vertical; min-height: 120px; font-family: sans-serif; line-height: 1.6;}
+        
+        .btn-note { padding: 12px; font-size: 15px; width: 100%; border: none; border-radius: 6px; color: white; font-weight: bold; cursor: pointer;}
+        .btn-edit-mode { background: #444; }
+        
+        .edit-controls { display: grid; grid-template-columns: 2fr 1fr; gap: 10px; }
+        .btn-save { background: #006633; }
+        .btn-cancel { background: #888; }
+
+        @media (min-width: 800px) {
+            .editor-container { flex-direction: row; align-items: flex-start; padding: 25px; gap: 30px; }
+            .board-column { flex: 0 0 450px; position: sticky; top: 80px; }
+            .note-column { flex: 1; min-width: 300px; }
+            .piece { font-size: 1.4rem; }
+        }
+        @media (max-width: 400px) {
+            #controls { grid-template-columns: repeat(2, 1fr); }
+            .piece { font-size: 1rem; }
+            .dashboard-actions { flex-direction: column; }
+        }
+    </style>
+<meta property="og:title" content="Quản Lý Book Cờ Tướng V16" data-id="th-modified" ><meta name="description" content="cotuong" data-id="th-modified" ><meta property="og:description" content="cotuong" data-id="th-modified" ><meta property="og:image" content="https://tiiny.host/assets/logo-purple-bg.png" data-id="th-modified" ><meta property="og:url" content="https://cotuong.tiiny.site/" data-id="th-modified" ><meta property="og:type" content="website" data-id="th-modified" ><script defer data-domain="cotuong.tiiny.site" src="https://analytics.tiiny.site/js/plausible.js"></script><script type="text/javascript" src="https://tiiny.host/ad-script.js"></script></head>
+<body>
+
+    <header>
+        <button id="btn-back" onclick="showDashboard()">⬅️</button>
+        <span id="header-title">Quản Lý Book</span>
+    </header>
+
+    <div id="dashboard-screen">
+        <div id="unsaved-warning">
+            ⚠️ Chú ý: Bạn có dữ liệu vừa thay đổi nhưng chưa được Tải về máy. Tránh xóa Cache lúc này!
+        </div>
+        
+        <div class="dashboard-actions">
+            <button class="btn-main btn-create-book" onclick="createNewBook()">➕ TẠO MỚI</button>
+            <button class="btn-main btn-import-book" onclick="document.getElementById('file-upload').click()">📂 MỞ FILE</button>
+            <button class="btn-main btn-sync-pc" id="btn-sync" onclick="setupAutoSync()">🔄 BẬT AUTO-SAVE (PC)</button>
+            <input type="file" id="file-upload" accept=".json" style="display: none;" onchange="importBook(event)">
+        </div>
+        <div id="book-list-container" class="book-list"></div>
+    </div>
+
+    <div id="editor-screen">
+        <div id="turn-indicator" class="red-turn">🔴 Lượt đi: ĐỎ</div>
+
+        <div class="editor-container">
+            <div class="board-column">
+                <div id="board-wrapper">
+                    <div id="board">
+                        <svg id="board-svg"></svg>
+                        <svg id="arrow-layer">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#0044cc" ></polygon></marker>
+                                <marker id="arrowhead-red" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#cc0000" ></polygon></marker>
+                            </defs>
+                            <g id="arrows-group"></g>
+                        </svg>
+                        <div id="pieces-layer"></div>
+                    </div>
+                </div>
+
+                <div id="controls">
+                    <button class="btn-board btn-nav" onclick="goBack()">🔙 Lùi</button>
+                    <button class="btn-board btn-nav" onclick="goNext()">Tiếp 🔜</button>
+                    <button class="btn-board btn-action" onclick="toggleFlip()">↕️ Đổi bên</button>
+                    <button class="btn-board btn-action" onclick="resetToRoot()">🔄 Về đầu</button>
+                </div>
+            </div>
+
+            <div class="note-column">
+                <div id="note-section">
+                    <div id="move-info">Nước đi: Bắt đầu</div>
+                    
+                    <div id="variations" style="display: none;"></div>
+                    
+                    <div id="note-view">
+                        <div id="note-content"></div>
+                        <button class="btn-note btn-edit-mode" onclick="enableEditNote()">📝 Thêm / Sửa Ghi Chú</button>
+                    </div>
+
+                    <div id="note-edit" style="display: none;">
+                        <textarea id="note-input" placeholder="Viết ghi chú, phân tích cho nhánh cờ này..."></textarea>
+                        <div class="edit-controls">
+                            <button class="btn-note btn-save" onclick="saveNote()">💾 Lưu</button>
+                            <button class="btn-note btn-cancel" onclick="cancelEditNote()">Hủy</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const startState = [
+            ['r','h','e','a','k','a','e','h','r'], ['.','.','.','.','.','.','.','.','.'], ['.','c','.','.','.','.','.','c','.'],
+            ['p','.','p','.','p','.','p','.','p'], ['.','.','.','.','.','.','.','.','.'], ['.','.','.','.','.','.','.','.','.'],
+            ['P','.','P','.','P','.','P','.','P'], ['.','C','.','.','.','.','.','C','.'], ['.','.','.','.','.','.','.','.','.'],
+            ['R','H','E','A','K','A','E','H','R']
+        ];
+        const pieceMap = { 'R': '車', 'H': '馬', 'E': '相', 'A': '仕', 'K': '帥', 'C': '炮', 'P': '兵', 'r': '車', 'h': '馬', 'e': '象', 'a': '士', 'k': '將', 'c': '砲', 'p': '卒' };
+
+        let appData = []; let currentBookId = null; 
+        let bookTree; let currentNode; let historyPath = []; let selectedSquare = null; let isGameOver = false; let isFlipped = false;
+
+        let isUnsavedToPhysicalFile = false; let localFileHandle = null; 
+
+        function initApp() {
+            let saved = localStorage.getItem('xiangqi_app_v16');
+            if (saved) { appData = JSON.parse(saved); }
+            if ('showSaveFilePicker' in window) { document.getElementById('btn-sync').style.display = 'block'; }
+            showDashboard();
+        }
+
+        function saveAppData() { 
+            localStorage.setItem('xiangqi_app_v16', JSON.stringify(appData)); 
+            isUnsavedToPhysicalFile = true; updateWarningUI();
+            if (localFileHandle) { syncToLocalFile(); }
+        }
+
+        function updateWarningUI() {
+            const warningBox = document.getElementById('unsaved-warning');
+            if (isUnsavedToPhysicalFile && !localFileHandle) { warningBox.style.display = 'block'; } 
+            else { warningBox.style.display = 'none'; }
+        }
+
+        window.addEventListener('beforeunload', function (e) {
+            if (isUnsavedToPhysicalFile && !localFileHandle) { e.preventDefault(); e.returnValue = ''; }
+        });
+
+        async function setupAutoSync() {
+            try {
+                localFileHandle = await window.showSaveFilePicker({ suggestedName: 'ThuVienCoTuong_AutoSave.json', types: [{ description: 'JSON Files', accept: {'application/json': ['.json']} }], });
+                let btn = document.getElementById('btn-sync'); btn.innerText = "✅ ĐANG AUTO-SAVE"; btn.style.background = "#28a745";
+                alert("Kết nối thành công! Từ giờ mọi nước đi sẽ tự động lưu thẳng vào file trên máy tính.");
+                syncToLocalFile();
+            } catch (err) {
+                if(err.name !== 'AbortError') { alert("Lỗi: Trình duyệt không hỗ trợ tính năng này."); }
+            }
+        }
+
+        async function syncToLocalFile() {
+            if (localFileHandle) {
+                try {
+                    const writable = await localFileHandle.createWritable();
+                    await writable.write(JSON.stringify(appData, null, 2));
+                    await writable.close();
+                    isUnsavedToPhysicalFile = false; updateWarningUI();
+                } catch (err) { console.error("Lỗi Auto-save:", err); }
+            }
+        }
+
+        function exportBook(id) {
+            let book = appData.find(b => b.id === id); if (!book) return;
+            let dataStr = JSON.stringify(book, null, 2);
+            let blob = new Blob([dataStr], { type: "application/json" });
+            let url = URL.createObjectURL(blob); let a = document.createElement('a'); a.href = url; a.download = (book.name || "Book") + ".json";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            isUnsavedToPhysicalFile = false; updateWarningUI();
+        }
+
+        function importBook(event) {
+            let file = event.target.files[0]; if (!file) return;
+            let reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    let importedBook = JSON.parse(e.target.result);
+                    if (importedBook && importedBook.tree && importedBook.tree.id === 'root') {
+                        importedBook.id = 'book_' + Date.now(); importedBook.updatedAt = Date.now();
+                        appData.push(importedBook); saveAppData(); renderDashboard(); alert("Đã nhập Book thành công!");
+                    } else { alert("File không đúng định dạng!"); }
+                } catch(err) { alert("Lỗi đọc file!"); }
+                event.target.value = ""; 
+            };
+            reader.readAsText(file);
+        }
+
+        function showDashboard() {
+            document.getElementById('dashboard-screen').style.display = 'flex'; document.getElementById('editor-screen').style.display = 'none';
+            document.getElementById('btn-back').style.display = 'none'; document.getElementById('header-title').innerText = "Sổ Tay Khai Cuộc";
+            currentBookId = null; renderDashboard(); updateWarningUI();
+        }
+
+        function renderDashboard() {
+            const container = document.getElementById('book-list-container'); container.innerHTML = '';
+            if (appData.length === 0) { container.innerHTML = '<div style="text-align:center; color:#888; margin-top: 30px; font-size: 16px;">Bạn chưa có Book nào.<br><br>Hãy bấm <b>Tạo Mới</b> hoặc <b>Mở File</b> để bắt đầu nhé!</div>'; return; }
+            let sortedBooks = [...appData].sort((a, b) => b.updatedAt - a.updatedAt);
+            sortedBooks.forEach(book => {
+                let dateStr = new Date(book.updatedAt).toLocaleString('vi-VN');
+                let item = document.createElement('div'); item.className = 'book-item';
+                item.innerHTML = `
+                    <div class="book-info" onclick="openBook('${book.id}')">
+                        <div class="book-title">${book.name}</div>
+                        <div class="book-meta">Cập nhật: ${dateStr}</div>
+                    </div>
+                    <div class="book-actions">
+                        <button class="btn-sm btn-export" onclick="exportBook('${book.id}')">⬇️ Tải file</button>
+                        <button class="btn-sm btn-edit-name" onclick="renameBook('${book.id}')">✏️ Đổi tên</button>
+                        <button class="btn-sm btn-delete" onclick="deleteBook('${book.id}')">❌ Xóa</button>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function createNewBook() {
+            let name = prompt("Nhập tên cho Book cờ mới:", "Book Không Tên");
+            if (name && name.trim() !== "") {
+                let newBook = { id: 'book_' + Date.now(), name: name.trim(), updatedAt: Date.now(), tree: { id: 'root', board: JSON.parse(JSON.stringify(startState)), moveName: 'Bắt đầu', moveDetails: null, note: '', isRedTurn: true, children: [] } };
+                appData.push(newBook); saveAppData(); openBook(newBook.id);
+            }
+        }
+
+        function renameBook(id) {
+            let book = appData.find(b => b.id === id); let newName = prompt("Sửa tên Book:", book.name);
+            if (newName && newName.trim() !== "") { book.name = newName.trim(); book.updatedAt = Date.now(); saveAppData(); renderDashboard(); }
+        }
+        function deleteBook(id) { if (confirm("Bạn có chắc chắn muốn xóa Book này vĩnh viễn?")) { appData = appData.filter(b => b.id !== id); saveAppData(); renderDashboard(); } }
+
+        function openBook(id) {
+            let book = appData.find(b => b.id === id); currentBookId = book.id; bookTree = book.tree; currentNode = bookTree; historyPath = [bookTree];
+            isFlipped = false; selectedSquare = null;
+            document.getElementById('dashboard-screen').style.display = 'none'; document.getElementById('editor-screen').style.display = 'flex';
+            document.getElementById('btn-back').style.display = 'block'; document.getElementById('header-title').innerText = book.name;
+            drawBoardLines(); renderBoard();
+        }
+
+        function autoSaveBook() { if (currentBookId) { let book = appData.find(b => b.id === currentBookId); book.updatedAt = Date.now(); saveAppData(); } }
+
+        function toggleFlip() { isFlipped = !isFlipped; renderBoard(); }
+
+        function drawBoardLines() {
+            const svg = document.getElementById('board-svg'); let html = '';
+            for(let i=0; i<=9; i++) { let y = (i * 100 / 9) + '%'; html += `<line x1="0" y1="${y}" x2="100%" y2="${y}" stroke="var(--line-color)" stroke-width="2"/>`; }
+            for(let i=0; i<=8; i++) {
+                let x = (i * 100 / 8) + '%';
+                if(i===0 || i===8) html += `<line x1="${x}" y1="0" x2="${x}" y2="100%" stroke="var(--line-color)" stroke-width="2"/>`;
+                else { html += `<line x1="${x}" y1="0" x2="${x}" y2="${400/9}%" stroke="var(--line-color)" stroke-width="2"/>`; html += `<line x1="${x}" y1="${500/9}%" x2="${x}" y2="100%" stroke="var(--line-color)" stroke-width="2"/>`; }
+            }
+            html += `<line x1="${300/8}%" y1="0" x2="${500/8}%" y2="${200/9}%" stroke="var(--line-color)" stroke-width="2"/>`; html += `<line x1="${500/8}%" y1="0" x2="${300/8}%" y2="${200/9}%" stroke="var(--line-color)" stroke-width="2"/>`;
+            html += `<line x1="${300/8}%" y1="${700/9}%" x2="${500/8}%" y2="100%" stroke="var(--line-color)" stroke-width="2"/>`; html += `<line x1="${500/8}%" y1="${700/9}%" x2="${300/8}%" y2="100%" stroke="var(--line-color)" stroke-width="2"/>`;
+            svg.innerHTML = html;
+        }
+
+        function drawVariationArrows() {
+            const group = document.getElementById('arrows-group'); group.innerHTML = '';
+            if (selectedSquare || isGameOver) return; 
+            currentNode.children.forEach(child => {
+                if (child.moveDetails) {
+                    let {fromR, fromC, toR, toC} = child.moveDetails;
+                    let drawFromR = isFlipped ? 9 - fromR : fromR; let drawFromC = isFlipped ? 8 - fromC : fromC;
+                    let drawToR = isFlipped ? 9 - toR : toR; let drawToC = isFlipped ? 8 - toC : toC;
+                    let x1 = (drawFromC * 100 / 8) + '%'; let y1 = (drawFromR * 100 / 9) + '%';
+                    let x2 = (drawToC * 100 / 8) + '%'; let y2 = (drawToR * 100 / 9) + '%';
+                    
+                    let isCapture = currentNode.board[toR][toC] !== '.';
+                    let color = isCapture ? '#cc0000' : '#0044cc'; let markerId = isCapture ? 'url(#arrowhead-red)' : 'url(#arrowhead)';
+                    let line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    line.setAttribute('x1', x1); line.setAttribute('y1', y1); line.setAttribute('x2', x2); line.setAttribute('y2', y2);
+                    line.setAttribute('stroke', color); line.setAttribute('stroke-width', '3'); line.setAttribute('stroke-dasharray', '5, 4'); line.setAttribute('marker-end', markerId); line.setAttribute('opacity', '0.7');
+                    group.appendChild(line);
+                }
+            });
+        }
+
+        function renderBoard() {
+            const layer = document.getElementById('pieces-layer'); layer.innerHTML = ''; 
+            let boardState = currentNode.board; let isCheck = isUnderCheck(boardState, currentNode.isRedTurn);
+            
+            for (let r = 0; r < 10; r++) {
+                for (let c = 0; c < 9; c++) {
+                    let point = document.createElement('div'); point.className = 'point'; 
+                    let displayR = isFlipped ? 9 - r : r; let displayC = isFlipped ? 8 - c : c;
+                    point.style.left = (displayC * 100 / 8) + '%'; point.style.top = (displayR * 100 / 9) + '%';
+                    point.onclick = () => handleCellClick(r, c);
+
+                    let pieceChar = boardState[r][c];
+                    
+                    if (pieceChar !== '.') {
+                        let piece = document.createElement('div');
+                        let isRed = pieceChar === pieceChar.toUpperCase();
+                        piece.className = 'piece ' + (isRed ? 'red-piece' : 'black-piece');
+                        if (selectedSquare && selectedSquare.r === r && selectedSquare.c === c) piece.classList.add('selected');
+                        if (isCheck && ((isRed && currentNode.isRedTurn && pieceChar==='K') || (!isRed && !currentNode.isRedTurn && pieceChar==='k'))) piece.classList.add('in-check-piece');
+                        piece.innerText = pieceMap[pieceChar]; point.appendChild(piece);
+                    } 
+                    
+                    if (selectedSquare && !isGameOver) {
+                        if(checkMoveLogic(boardState, selectedSquare.r, selectedSquare.c, r, c)) {
+                            if (boardState[r][c] !== '.') { let hint = document.createElement('div'); hint.className = 'capture-hint'; point.appendChild(hint); } 
+                            else { let hint = document.createElement('div'); hint.className = 'valid-move-hint'; point.appendChild(hint); }
+                        }
+                    }
+
+                    if (!selectedSquare && !isGameOver) {
+                        currentNode.children.forEach((child, index) => {
+                            if (child.moveDetails && child.moveDetails.toR === r && child.moveDetails.toC === c) {
+                                if (currentNode.children.length >= 2) {
+                                    let isCapture = boardState[r][c] !== '.'; let marker = document.createElement('div'); marker.className = 'var-marker';
+                                    marker.style.backgroundColor = isCapture ? '#cc0000' : '#0044cc'; marker.innerText = index + 1; point.appendChild(marker);
+                                }
+                                point.onclick = (e) => { e.stopPropagation(); selectedSquare = null; goToNode(child); };
+                            }
+                        });
+                    }
+                    layer.appendChild(point);
+                }
+            }
+            drawVariationArrows(); updateUI(isCheck);
+        }
+
+        function updateUI(isCheck) {
+            const turnInd = document.getElementById('turn-indicator');
+            let canMove = hasAnyLegalMove(currentNode.board, currentNode.isRedTurn); isGameOver = false;
+            if (!canMove) { isGameOver = true; if (isCheck) { turnInd.innerText = (currentNode.isRedTurn ? "ĐỎ" : "ĐEN") + " BỊ CHIẾU HẾT (MATE)!"; turnInd.className = "mate-alert"; } else { turnInd.innerText = (currentNode.isRedTurn ? "ĐỎ" : "ĐEN") + " HẾT NƯỚC ĐI (HÒA)!"; turnInd.className = "mate-alert"; }
+            } else if (isCheck) { turnInd.innerText = (currentNode.isRedTurn ? "🔴 ĐỎ" : "⚫ ĐEN") + " ĐANG BỊ CHIẾU!"; turnInd.className = "check-alert"; } 
+            else { turnInd.innerText = currentNode.isRedTurn ? "🔴 Lượt đi: ĐỎ" : "⚫ Lượt đi: ĐEN"; turnInd.className = currentNode.isRedTurn ? "red-turn" : "black-turn"; }
+
+            document.getElementById('move-info').innerText = 'Trạng thái: ' + currentNode.moveName;
+
+            let noteContent = document.getElementById('note-content');
+            if (currentNode.note && currentNode.note.trim() !== '') { noteContent.innerHTML = currentNode.note.replace(/\n/g, '<br>'); noteContent.style.color = '#111'; noteContent.style.fontStyle = 'normal';
+            } else { noteContent.innerText = 'Chưa có ghi chú cho thế cờ này.'; noteContent.style.color = '#888'; noteContent.style.fontStyle = 'italic'; }
+            document.getElementById('note-view').style.display = 'flex'; document.getElementById('note-edit').style.display = 'none';
+
+            const varContainer = document.getElementById('variations'); 
+            varContainer.innerHTML = '';
+            
+            if (currentNode.children.length > 0) {
+                varContainer.style.display = 'flex'; 
+                let label = document.createElement('span'); label.innerText = 'Các biến nhánh: '; label.style.alignSelf = 'center'; label.style.color = '#0044cc'; label.style.fontWeight = 'bold'; varContainer.appendChild(label);
+                
+                // RENDER CÁC NHÁNH CÙNG NÚT XÓA
+                currentNode.children.forEach((childNode, index) => {
+                    let group = document.createElement('div');
+                    group.className = 'var-btn-group';
+
+                    let btn = document.createElement('button'); 
+                    btn.className = 'var-btn';
+                    
+                    let delBtn = document.createElement('button');
+                    delBtn.className = 'var-delete-btn';
+                    delBtn.innerHTML = '✖';
+                    delBtn.title = "Xóa nhánh này";
+
+                    let isCapture = currentNode.board[childNode.moveDetails.toR][childNode.moveDetails.toC] !== '.';
+                    if (isCapture) { 
+                        group.classList.add('capture-group');
+                        btn.classList.add('capture-btn'); 
+                        delBtn.classList.add('capture-del');
+                    } 
+                    
+                    btn.innerText = currentNode.children.length >= 2 ? `[${index + 1}] ${childNode.moveName}` : childNode.moveName;
+                    btn.onclick = () => { selectedSquare = null; goToNode(childNode); };
+
+                    // SỰ KIỆN XÓA NHÁNH
+                    delBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        if(confirm(`⚠️ Bạn có chắc muốn XÓA VĨNH VIỄN nhánh [${childNode.moveName}] và toàn bộ các nước đi sau nó không?`)) {
+                            currentNode.children.splice(index, 1);
+                            autoSaveBook();
+                            selectedSquare = null;
+                            renderBoard();
+                        }
+                    };
+
+                    group.appendChild(btn);
+                    group.appendChild(delBtn);
+                    varContainer.appendChild(group);
+                });
+            } else {
+                varContainer.style.display = 'none'; 
+            }
+        }
+
+        function enableEditNote() { document.getElementById('note-view').style.display = 'none'; document.getElementById('note-edit').style.display = 'flex'; document.getElementById('note-input').value = currentNode.note || ''; document.getElementById('note-input').focus(); }
+        function cancelEditNote() { document.getElementById('note-view').style.display = 'flex'; document.getElementById('note-edit').style.display = 'none'; }
+        function saveNote() { currentNode.note = document.getElementById('note-input').value; autoSaveBook(); updateUI(isUnderCheck(currentNode.board, currentNode.isRedTurn)); }
+
+        function goNext() { if (currentNode.children.length === 1) { selectedSquare = null; goToNode(currentNode.children[0]); } else if (currentNode.children.length > 1) { const varDiv = document.getElementById('variations'); varDiv.style.backgroundColor = '#ffffcc'; setTimeout(() => varDiv.style.backgroundColor = 'transparent', 300); } }
+        function goToNode(node) { historyPath.push(node); currentNode = node; renderBoard(); }
+        function goBack() { if (historyPath.length > 1) { historyPath.pop(); currentNode = historyPath[historyPath.length - 1]; selectedSquare = null; renderBoard(); } }
+        function resetToRoot() { historyPath = [bookTree]; currentNode = bookTree; selectedSquare = null; renderBoard(); }
+
+        function rawMoveLogic(board, r1, c1, r2, c2) {
+            let p = board[r1][c1]; let isRed = (p === p.toUpperCase()); let target = board[r2][c2];
+            if (target !== '.' && (target === target.toUpperCase()) === isRed) return false;
+            let dr = r2 - r1; let absDr = Math.abs(dr); let dc = c2 - c1; let absDc = Math.abs(dc);
+            switch(p.toLowerCase()) {
+                case 'k': if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false; if (absDr + absDc !== 1) return false; break;
+                case 'a': if (c2 < 3 || c2 > 5) return false; if (isRed && r2 < 7) return false; if (!isRed && r2 > 2) return false; if (absDr !== 1 || absDc !== 1) return false; break;
+                case 'e': if (isRed && r2 < 5) return false; if (!isRed && r2 > 4) return false; if (absDr !== 2 || absDc !== 2) return false; if (board[r1 + dr/2][c1 + dc/2] !== '.') return false; break;
+                case 'h': if (!((absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2))) return false; if (absDr === 2 && board[r1 + dr/2][c1] !== '.') return false; if (absDc === 2 && board[r1][c1 + dc/2] !== '.') return false; break;
+                case 'r': if (dr !== 0 && dc !== 0) return false; if (countPiecesBetween(board, r1, c1, r2, c2) !== 0) return false; break;
+                case 'c': if (dr !== 0 && dc !== 0) return false; let piecesBetween = countPiecesBetween(board, r1, c1, r2, c2); if (target === '.') { if(piecesBetween !== 0) return false; } else { if(piecesBetween !== 1) return false; } break;
+                case 'p': if (isRed) { if (dr >= 0) return false; if (r1 >= 5 && absDc !== 0) return false; } else { if (dr <= 0) return false; if (r1 <= 4 && absDc !== 0) return false; } if (absDr + absDc !== 1) return false; break;
+            } return true;
+        }
+
+        function isUnderCheck(board, isRed) {
+            let kingR, kingC; let kingChar = isRed ? 'K' : 'k';
+            for(let r=0; r<10; r++) for(let c=0; c<9; c++) if(board[r][c] === kingChar) { kingR = r; kingC = c; break; }
+            if(kingR === undefined) return false;
+            for(let r=0; r<10; r++) { for(let c=0; c<9; c++) { let p = board[r][c]; if(p !== '.' && (p === p.toUpperCase()) !== isRed) { if(rawMoveLogic(board, r, c, kingR, kingC)) return true; } } }
+            return false;
+        }
+        function isKingsFacing(board) {
+            let redK = null, blackK = null;
+            for (let r = 0; r < 10; r++) { for (let c = 3; c <= 5; c++) { if (board[r][c] === 'K') redK = {r, c}; if (board[r][c] === 'k') blackK = {r, c}; } }
+            if (redK && blackK && redK.c === blackK.c) { if (countPiecesBetween(board, blackK.r, blackK.c, redK.r, redK.c) === 0) return true; } return false;
+        }
+        function checkMoveLogic(board, r1, c1, r2, c2) {
+            let p = board[r1][c1]; let isRed = (p === p.toUpperCase());
+            if (!rawMoveLogic(board, r1, c1, r2, c2)) return false;
+            let tempBoard = JSON.parse(JSON.stringify(board)); tempBoard[r2][c2] = p; tempBoard[r1][c1] = '.';
+            if (isKingsFacing(tempBoard)) return false; if (isUnderCheck(tempBoard, isRed)) return false; return true;
+        }
+        function hasAnyLegalMove(board, isRed) {
+            for(let r1=0; r1<10; r1++) { for(let c1=0; c1<9; c1++) { let p = board[r1][c1]; if(p !== '.' && (p === p.toUpperCase()) === isRed) { for(let r2=0; r2<10; r2++) { for(let c2=0; c2<9; c2++) { if(checkMoveLogic(board, r1, c1, r2, c2)) return true; } } } } } return false;
+        }
+        function countPiecesBetween(board, r1, c1, r2, c2) {
+            let count = 0;
+            if (r1 === r2) { let min = Math.min(c1, c2), max = Math.max(c1, c2); for (let c = min + 1; c < max; c++) if (board[r1][c] !== '.') count++; } 
+            else { let min = Math.min(r1, r2), max = Math.max(r1, r2); for (let r = min + 1; r < max; r++) if (board[r][c1] !== '.') count++; } return count;
+        }
+
+        function handleCellClick(r, c) {
+            if (isGameOver) return; let boardState = currentNode.board; let clickedPiece = boardState[r][c];
+            if (!selectedSquare) {
+                if (clickedPiece !== '.') {
+                    let isRedPiece = clickedPiece === clickedPiece.toUpperCase();
+                    if (isRedPiece !== currentNode.isRedTurn) { alert(currentNode.isRedTurn ? "Đang là lượt của ĐỎ!" : "Đang là lượt của ĐEN!"); return; }
+                    selectedSquare = { r, c }; renderBoard();
+                }
+            } else {
+                if (selectedSquare.r === r && selectedSquare.c === c) { selectedSquare = null; renderBoard(); } 
+                else {
+                    if (checkMoveLogic(boardState, selectedSquare.r, selectedSquare.c, r, c)) { executeMove(selectedSquare.r, selectedSquare.c, r, c); } 
+                    else {
+                        let isRedPiece = clickedPiece === clickedPiece.toUpperCase();
+                        if (clickedPiece !== '.' && isRedPiece === currentNode.isRedTurn) { selectedSquare = { r, c }; renderBoard(); } 
+                    }
+                }
+            }
+        }
+
+        function executeMove(fromR, fromC, toR, toC) {
+            let currentBoardState = currentNode.board; let movingPiece = currentBoardState[fromR][fromC]; 
+            let moveName = `${pieceMap[movingPiece]} (${fromC},${fromR})->(${toC},${toR})`;
+            let existingChild = currentNode.children.find(child => child.moveDetails && child.moveDetails.fromR === fromR && child.moveDetails.fromC === fromC && child.moveDetails.toR === toR && child.moveDetails.toC === toC);
+            
+            selectedSquare = null; 
+            if (existingChild) { goToNode(existingChild); } 
+            else {
+                let newBoardState = JSON.parse(JSON.stringify(currentBoardState)); newBoardState[toR][toC] = movingPiece; newBoardState[fromR][fromC] = '.';
+                let newNode = { id: 'node_' + Date.now(), board: newBoardState, moveName: moveName, moveDetails: { fromR, fromC, toR, toC }, note: '', isRedTurn: !currentNode.isRedTurn, children: [] };
+                currentNode.children.push(newNode); 
+                autoSaveBook(); 
+                goToNode(newNode);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (document.getElementById('dashboard-screen').style.display !== 'none') return;
+            if (document.activeElement.tagName === 'TEXTAREA' || document.activeElement.tagName === 'INPUT') return;
+            if (e.key === 'ArrowLeft') { e.preventDefault(); goBack(); }
+            if (e.key === 'ArrowRight') { e.preventDefault(); goNext(); }
+            if (e.key === 'ArrowUp') { e.preventDefault(); resetToRoot(); }
+        });
+
+        initApp();
+    </script>
+</body>
+</html>
