@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Quản Lý Book Cờ Tướng V26</title>
+    <title>Quản Lý Book Cờ Tướng V27 (Hệ Thống Dịch Chữ Động)</title>
     <style>
         :root { --board-bg: #eebf81; --line-color: #5a3a22; --piece-bg: #fdf5e6; --primary: #8b0000; }
         
@@ -44,10 +44,10 @@
 
         #board-area { width: 100%; position: relative; padding: 10px 6%; user-select: none; -webkit-user-select: none; }
         
-        /* FIX: Thêm margin để dãn dãy số ra xa khỏi quân cờ */
+        /* Cố định số thứ tự */
         .coord-row { position: relative; width: 100%; height: 16px; }
-        #coord-top { margin-bottom: 22px; }
-        #coord-bottom { margin-top: 22px; }
+        #coord-top { margin-bottom: 25px; }
+        #coord-bottom { margin-top: 25px; }
         .coord-row span { position: absolute; transform: translateX(-50%); font-size: 14px; font-weight: bold; color: #8b0000; }
         
         #board { position: relative; width: 100%; aspect-ratio: 8 / 9; background-color: var(--board-bg); border: 2px solid var(--line-color); box-shadow: 0 4px 10px rgba(0,0,0,0.15);}
@@ -60,16 +60,14 @@
         .red-piece { color: #cc0000; border-color: #cc0000; }
         .black-piece { color: #000; border-color: #000; }
         
-        /* HIỆU ỨNG TƯƠNG TÁC ĐƯỢC LÀM DỊU LẠI */
-        .selected { box-shadow: 0 0 5px 3px #00ff00; border-color: #00ff00; }
-        .in-check-piece { box-shadow: 0 0 10px 4px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
+        /* HIỆU ỨNG TƯƠNG TÁC TỐI ƯU */
+        .selected { box-shadow: 0 0 10px 4px rgba(0, 255, 0, 0.7); border-color: rgba(0, 255, 0, 0.7); }
+        .in-check-piece { box-shadow: 0 0 15px 5px #ff0000; border-color: #ff0000; background-color: #ffcccc; }
         
-        /* Chấm tròn nước đi cũ nhỏ hơn và nhạt hơn (70%) */
-        .last-move-dot { position: absolute; width: 18%; height: 18%; background-color: rgba(0, 100, 255, 0.35); border-radius: 50%; pointer-events: none; z-index: 1;}
-        /* Viền sáng cho quân cờ vừa mới tới đích nhạt hơn */
-        .last-moved-piece { box-shadow: 0 0 8px 2px rgba(0, 100, 255, 0.4); border-color: rgba(0, 100, 255, 0.6); }
+        .last-move-dot { position: absolute; width: 18%; height: 18%; background-color: rgba(0, 100, 255, 0.25); border-radius: 50%; pointer-events: none; z-index: 1;}
+        .last-moved-piece { box-shadow: 0 0 8px 2px rgba(0, 100, 255, 0.25); border-color: rgba(0, 100, 255, 0.4); }
         
-        .valid-move-hint { width: 25%; height: 25%; background: rgba(0, 200, 0, 0.4); border-radius: 50%; z-index: 1;}
+        .valid-move-hint { width: 25%; height: 25%; background: rgba(0, 200, 0, 0.25); border-radius: 50%; z-index: 1;}
         .capture-hint { position: absolute; width: 95%; height: 95%; border: 3px solid rgba(220, 53, 69, 0.5); border-radius: 50%; z-index: 5; pointer-events: none; }
         .var-marker { position: absolute; top: -5%; right: -5%; width: 40%; aspect-ratio: 1; color: white; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; font-weight: bold; z-index: 5; box-shadow: 0 0 5px rgba(0,0,0,0.5); border: 1px solid white; pointer-events: none; }
 
@@ -208,20 +206,34 @@
         const pieceVietName = { 'R': 'Xe', 'H': 'Mã', 'E': 'Tượng', 'A': 'Sĩ', 'K': 'Tướng', 'C': 'Pháo', 'P': 'Tốt', 'r': 'Xe', 'h': 'Mã', 'e': 'Tượng', 'a': 'Sĩ', 'k': 'Tướng', 'c': 'Pháo', 'p': 'Tốt' };
         const pieceMap = { 'R': '車', 'H': '馬', 'E': '相', 'A': '仕', 'K': '帥', 'C': '炮', 'P': '兵', 'r': '車', 'h': '馬', 'e': '象', 'a': '士', 'k': '將', 'c': '砲', 'p': '卒' };
 
-        // ================= DỊCH NƯỚC CỜ CHUẨN (NOTATION) =================
-        function generateNotation(board, fromR, fromC, toR, toC) {
-            let p = board[fromR][fromC];
+        // ================= DỊCH NƯỚC CỜ ĐỘNG (REACTIVE NOTATION) =================
+        function getDynamicNotation(parentBoard, moveDetails) {
+            if (!moveDetails) return "Bắt đầu";
+            let {fromR, fromC, toR, toC} = moveDetails;
+            let p = parentBoard[fromR][fromC];
+            if (!p || p === '.') return "Lỗi phân tích cờ"; 
             let isRed = (p === p.toUpperCase());
-            let pName = pieceVietName[p];
+            let pName = pieceVietName[p] || "Quân";
 
-            let startCol = isRed ? (9 - fromC) : (fromC + 1);
-            let endCol = isRed ? (9 - toC) : (toC + 1);
+            // Phản ứng ĐỘNG với trạng thái Lật và Đảo của bàn cờ
+            let vFromC = fromC;
+            if (isMirrored) vFromC = 8 - vFromC;
+            if (isFlipped) vFromC = 8 - vFromC;
+            
+            let vToC = toC;
+            if (isMirrored) vToC = 8 - vToC;
+            if (isFlipped) vToC = 8 - vToC;
+
+            // Chốt tọa độ theo đúng chữ số dán trên màn hình
+            let startCol = isRed ? (isFlipped ? vFromC + 1 : 9 - vFromC) : (isFlipped ? 9 - vFromC : vFromC + 1);
+            let endCol = isRed ? (isFlipped ? vToC + 1 : 9 - vToC) : (isFlipped ? 9 - vToC : vToC + 1);
 
             let piecesOnSameFile = [];
-            for (let r = 0; r < 10; r++) { if (board[r][fromC] === p) piecesOnSameFile.push(r); }
+            for (let r = 0; r < 10; r++) { if (parentBoard[r][fromC] === p) piecesOnSameFile.push(r); }
 
             let prefix = pName; let showStartCol = true;
 
+            // Xử lý Tiền / Hậu (Dựa trên mảng logic gốc nên không bị sai khi lật bàn cờ)
             if (piecesOnSameFile.length === 2) {
                 let sorted = piecesOnSameFile.sort((a,b) => a - b); 
                 let isFront = isRed ? (fromR === sorted[0]) : (fromR === sorted[1]);
@@ -241,7 +253,7 @@
             } else {
                 let isForward = isRed ? (toR < fromR) : (toR > fromR);
                 action = isForward ? "tấn" : "thoái";
-                let straightMovers = ['R', 'C', 'P', 'K', 'A', 'r', 'c', 'p', 'k', 'a'];
+                let straightMovers = ['R', 'C', 'P', 'K', 'r', 'c', 'p', 'k'];
                 if (straightMovers.includes(p)) {
                     target = Math.abs(toR - fromR); 
                 } else {
@@ -253,6 +265,16 @@
             return `${colorPrefix}: ${prefix} ${showStartCol ? startCol : ''} ${action} ${target}`.replace(/\s+/g, ' ').trim();
         }
 
+        // Tiện ích lấy lại bàn cờ ở ngay trước lúc đi nước cờ (Dùng để dịch thuật Tiền/Hậu)
+        function getParentBoard(board, moveDetails) {
+            let temp = JSON.parse(JSON.stringify(board));
+            let {fromR, fromC, toR, toC} = moveDetails;
+            temp[fromR][fromC] = temp[toR][toC];
+            temp[toR][toC] = '.';
+            return temp;
+        }
+
+        // CÔNG CỤ NÉN FEN
         function boardToFen(boardArray) {
             let fen = '';
             for (let r = 0; r < 10; r++) {
@@ -288,7 +310,7 @@
         let isUnsavedToPhysicalFile = false; let localFileHandle = null; 
 
         function initApp() {
-            let saved = localStorage.getItem('xiangqi_app_v26');
+            let saved = localStorage.getItem('xiangqi_app_v27');
             if (saved) { appData = JSON.parse(saved); convertLegacyBooks(); }
             if ('showSaveFilePicker' in window) { document.getElementById('btn-sync').style.display = 'block'; }
             showDashboard();
@@ -307,7 +329,7 @@
         }
 
         function saveAppData() { 
-            localStorage.setItem('xiangqi_app_v26', JSON.stringify(appData)); 
+            localStorage.setItem('xiangqi_app_v27', JSON.stringify(appData)); 
             isUnsavedToPhysicalFile = true; updateWarningUI();
             if (localFileHandle) syncToLocalFile(); 
         }
@@ -430,10 +452,9 @@
             html += `<line x1="300" y1="0" x2="500" y2="200" stroke="var(--line-color)" stroke-width="3"/>`; html += `<line x1="500" y1="0" x2="300" y2="200" stroke="var(--line-color)" stroke-width="3"/>`;
             html += `<line x1="300" y1="700" x2="500" y2="900" stroke="var(--line-color)" stroke-width="3"/>`; html += `<line x1="500" y1="700" x2="300" y2="900" stroke="var(--line-color)" stroke-width="3"/>`;
             
-            // FIX: Hoa Hoa tỷ lệ 70%
             function createCross(c, r, drawL, drawR) {
                 let x = c * 100; let y = r * 100;
-                let gap = 8; let len = 15; let h = ''; // Kích thước giảm gọn lại
+                let gap = 5; let len = 10; let h = '';
                 if(drawL) {
                     h += `<path d="M${x-gap},${y-gap-len} L${x-gap},${y-gap} L${x-gap-len},${y-gap}" fill="none" stroke="var(--line-color)" stroke-width="2"/>`;
                     h += `<path d="M${x-gap},${y+gap+len} L${x-gap},${y+gap} L${x-gap-len},${y+gap}" fill="none" stroke="var(--line-color)" stroke-width="2"/>`;
@@ -453,13 +474,12 @@
             svg.innerHTML = html;
         }
 
-        // Tạo số tọa độ căn lề tuyệt đối
+        // CỐ ĐỊNH HOÀN TOÀN TỌA ĐỘ VĂN BẢN (KHÔNG BỊ ẢNH HƯỞNG BỞI LẬT BÀN CỜ)
         function drawCoordinates() {
             let topStr = ''; let botStr = '';
             for (let c=0; c<=8; c++) {
-                let botVal = isFlipped ? (isMirrored ? 9-c : c+1) : (isMirrored ? c+1 : 9-c);
-                let topVal = isFlipped ? (isMirrored ? c+1 : 9-c) : (isMirrored ? 9-c : c+1);
-                
+                let botVal = 9 - c; // Dưới luôn là 9..1
+                let topVal = c + 1; // Trên luôn là 1..9
                 let leftPos = (c * 100 / 8) + '%';
                 botStr += `<span style="left: ${leftPos}">${botVal}</span>`;
                 topStr += `<span style="left: ${leftPos}">${topVal}</span>`;
@@ -472,7 +492,6 @@
             const group = document.getElementById('arrows-group'); group.innerHTML = '';
             if (selectedSquare || isGameOver) return; 
 
-            // FIX: Đã xóa nét đứt báo hiệu lịch sử nước đi. Chỉ giữ mũi tên cho biến Gợi ý nhánh.
             currentNode.children.forEach(child => {
                 if (child.moveDetails) {
                     let {fromR, fromC, toR, toC} = child.moveDetails;
@@ -504,7 +523,6 @@
                     point.style.left = (displayC * 100 / 8) + '%'; point.style.top = (displayR * 100 / 9) + '%';
                     point.onclick = () => handleCellClick(r, c);
 
-                    // FIX: Biểu hiện nước đi cũ bằng chấm tròn siêu nhỏ
                     if (currentNode.moveDetails && !selectedSquare) {
                         let lm = currentNode.moveDetails;
                         if ((r === lm.fromR && c === lm.fromC) || (r === lm.toR && c === lm.toC)) {
@@ -513,13 +531,11 @@
                     }
 
                     let pieceChar = currentBoardState[r][c];
-                    
                     if (pieceChar !== '.') {
                         let piece = document.createElement('div');
                         let isRed = pieceChar === pieceChar.toUpperCase();
                         piece.className = 'piece ' + (isRed ? 'red-piece' : 'black-piece');
                         
-                        // FIX: Viền sáng nhạt (70%) cho quân cờ vừa mới tới đích
                         if (currentNode.moveDetails && !selectedSquare && r === currentNode.moveDetails.toR && c === currentNode.moveDetails.toC) {
                             piece.classList.add('last-moved-piece');
                         }
@@ -535,18 +551,6 @@
                             else { let hint = document.createElement('div'); hint.className = 'valid-move-hint'; point.appendChild(hint); }
                         }
                     }
-
-                    if (!selectedSquare && !isGameOver) {
-                        currentNode.children.forEach((child, index) => {
-                            if (child.moveDetails && child.moveDetails.toR === r && child.moveDetails.toC === c) {
-                                if (currentNode.children.length >= 2) {
-                                    let isCapture = currentBoardState[r][c] !== '.'; let marker = document.createElement('div'); marker.className = 'var-marker';
-                                    marker.style.backgroundColor = isCapture ? '#cc0000' : '#0044cc'; marker.innerText = index + 1; point.appendChild(marker);
-                                }
-                                point.onclick = (e) => { e.stopPropagation(); selectedSquare = null; goToNode(child); };
-                            }
-                        });
-                    }
                     layer.appendChild(point);
                 }
             }
@@ -560,7 +564,13 @@
             } else if (isCheck) { turnInd.innerText = (currentNode.isRedTurn ? "🔴 ĐỎ" : "⚫ ĐEN") + " ĐANG BỊ CHIẾU!"; turnInd.className = "check-alert"; } 
             else { turnInd.innerText = currentNode.isRedTurn ? "🔴 Lượt đi: ĐỎ" : "⚫ Lượt đi: ĐEN"; turnInd.className = currentNode.isRedTurn ? "red-turn" : "black-turn"; }
 
-            document.getElementById('move-info').innerText = 'Trạng thái: ' + currentNode.moveName;
+            // Lấy Tên nước đi tự động thay đổi theo View
+            if (currentNode.moveDetails) {
+                let pBoard = getParentBoard(currentBoardState, currentNode.moveDetails);
+                document.getElementById('move-info').innerText = 'Trạng thái: ' + getDynamicNotation(pBoard, currentNode.moveDetails);
+            } else {
+                document.getElementById('move-info').innerText = 'Trạng thái: Bắt đầu';
+            }
 
             let noteContent = document.getElementById('note-content');
             if (currentNode.note && currentNode.note.trim() !== '') { noteContent.innerHTML = currentNode.note.replace(/\n/g, '<br>'); noteContent.style.color = '#111'; noteContent.style.fontStyle = 'normal';
@@ -580,7 +590,9 @@
                     let isCapture = currentBoardState[childNode.moveDetails.toR][childNode.moveDetails.toC] !== '.';
                     if (isCapture) { group.classList.add('capture-group'); btn.classList.add('capture-btn'); delBtn.classList.add('capture-del'); } 
                     
-                    let shortName = childNode.moveName.split(':')[1].trim();
+                    // Nút hiển thị tên biến lấy động
+                    let dynamicName = getDynamicNotation(currentBoardState, childNode.moveDetails);
+                    let shortName = dynamicName.split(':')[1].trim();
                     btn.innerText = currentNode.children.length >= 2 ? `[${index + 1}] ${shortName}` : shortName;
                     
                     btn.onclick = () => { selectedSquare = null; goToNode(childNode); };
@@ -618,16 +630,7 @@
                 case 'h': if (!((absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2))) return false; if (absDr === 2 && board[r1 + dr/2][c1] !== '.') return false; if (absDc === 2 && board[r1][c1 + dc/2] !== '.') return false; break;
                 case 'r': if (dr !== 0 && dc !== 0) return false; if (countPiecesBetween(board, r1, c1, r2, c2) !== 0) return false; break;
                 case 'c': if (dr !== 0 && dc !== 0) return false; let piecesBetween = countPiecesBetween(board, r1, c1, r2, c2); if (target === '.') { if(piecesBetween !== 0) return false; } else { if(piecesBetween !== 1) return false; } break;
-                case 'p': 
-                    if (isRed) { 
-                        if (dr > 0) return false; // Chỉ chặn đi lùi (bỏ dấu bằng)
-                        if (r1 >= 5 && dr === 0) return false; // Chưa qua sông (r >= 5) thì không được đi ngang (dr === 0)
-                    } else { 
-                        if (dr < 0) return false; // Chỉ chặn đi lùi (bỏ dấu bằng)
-                        if (r1 <= 4 && dr === 0) return false; // Chưa qua sông (r <= 4) thì không được đi ngang (dr === 0)
-                    } 
-                    if (absDr + absDc !== 1) return false; // Vẫn đảm bảo mỗi lần chỉ đi 1 ô
-                    break;
+                case 'p': if (isRed) { if (dr > 0) return false; if (r1 >= 5 && dr === 0) return false; } else { if (dr < 0) return false; if (r1 <= 4 && dr === 0) return false; } if (absDr + absDc !== 1) return false; break;
             } return true;
         }
 
@@ -679,7 +682,6 @@
         }
 
         function executeMove(fromR, fromC, toR, toC) {
-            let moveName = generateNotation(currentBoardState, fromR, fromC, toR, toC);
             let existingChild = currentNode.children.find(child => child.moveDetails && child.moveDetails.fromR === fromR && child.moveDetails.fromC === fromC && child.moveDetails.toR === toR && child.moveDetails.toC === toC);
             
             selectedSquare = null; 
@@ -689,7 +691,8 @@
                 let newBoardState = JSON.parse(JSON.stringify(currentBoardState)); newBoardState[toR][toC] = movingPiece; newBoardState[fromR][fromC] = '.';
                 let newNode = { 
                     id: 'node_' + Date.now(), board: boardToFen(newBoardState),
-                    moveName: moveName, moveDetails: { fromR, fromC, toR, toC }, note: '', isRedTurn: !currentNode.isRedTurn, children: [] 
+                    moveName: "Legacy Name", 
+                    moveDetails: { fromR, fromC, toR, toC }, note: '', isRedTurn: !currentNode.isRedTurn, children: [] 
                 };
                 currentNode.children.push(newNode); autoSaveBook(); goToNode(newNode);
             }
